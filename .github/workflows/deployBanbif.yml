@@ -56,10 +56,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Configurar las credenciales de AWS
-        shell: bash
         run: |
-          echo "key id : ${{secrets.AWS_ACCESS_KEY_ID}}"
-          echo "secret key : ${{secrets.AWS_SECRET_ACCESS_KEY}}"
+          echo "key id : ${{vars.AWS_ACCESS_KEY_ID}}"
+          echo "secret key : ${{vars.AWS_SECRET_ACCESS_KEY}}"
           echo "region : ${{vars.AWS_REGION}}"
 
       - name: Configurar Terraform
