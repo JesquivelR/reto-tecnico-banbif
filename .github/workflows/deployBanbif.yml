@@ -35,7 +35,7 @@ on:
         type: string
       aws_region:
         description: Target AWS Region
-        default: "us-west-2"
+        default: "us-west-1"
         type: string
       backend_dynamodb_table:
         description: Tabla DynamoDB para bloqueo de estado
@@ -61,7 +61,7 @@ jobs:
 
       - name: Configurar las credenciales de AWS
         uses: aws-actions/configure-aws-credentials@v2
-        with:
+        env:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ inputs.aws_region }}
