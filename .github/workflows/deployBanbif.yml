@@ -20,7 +20,7 @@ on:
         type: string
       backend_s3_bucket:
         description: Nombre del bucket S3 para el backend de Terraform
-        default: "terraform-backend-primary-region"
+        default: "terraform-backend-banbif"
         type: string
       backend_iam_role:
         description: Nombre del rol IAM del backend de Terraform
@@ -77,6 +77,24 @@ jobs:
           set -eux
           repo="${GITHUB_REPOSITORY,,}"
           echo "ECR_REPO_NAME=${repo//\//_}" >> $GITHUB_ENV
+      
+      - name: Crear bucket de S3 y habilitar versionado
+        shell: bash
+        run: |
+          set -eux
+          aws s3api create-bucket --bucket ${{ inputs.backend_s3_bucket }} --region us-west-1 --create-bucket-configuration LocationConstraint=us-west-1
+          aws s3api put-bucket-versioning --bucket ${{ inputs.backend_s3_bucket }} --versioning-configuration Status=Enabled
+  
+      - name: Crear tabla DynamoDB
+        shell: bash
+        run: |
+          set -eux
+          aws dynamodb create-table \
+            --table-name ${{ inputs.backend_dynamodb_table }} \
+            --attribute-definitions AttributeName=LockID,AttributeType=S \
+            --key-schema AttributeName=LockID,KeyType=HASH \
+            --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+            --region us-west-1
 
       - name: TF init
         shell: bash
@@ -93,35 +111,35 @@ jobs:
             -backend-config='role_arn=arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.backend_iam_role }}'
         working-directory: ${{ github.action_path }}
 
-      - name: Create ECR repo [TF apply]
-        shell: bash
-        run: |
-          set -eux
-          terraform apply \
-            -var 'repository_name=${{ env.ECR_REPO_NAME }}' \
-            -var 'lifecycle_policy=${{ inputs.lifecycle_policy_file }}' \
-            -var 'iam_role=arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.github_iam_role }}' \
-            -var 'aws_account_id=${{ inputs.aws_account_id }}' \
-            -auto-approve
-        working-directory: ${{ github.action_path }}
+      # - name: Create ECR repo [TF apply]
+      #   shell: bash
+      #   run: |
+      #     set -eux
+      #     terraform apply \
+      #       -var 'repository_name=${{ env.ECR_REPO_NAME }}' \
+      #       -var 'lifecycle_policy=${{ inputs.lifecycle_policy_file }}' \
+      #       -var 'iam_role=arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.github_iam_role }}' \
+      #       -var 'aws_account_id=${{ inputs.aws_account_id }}' \
+      #       -auto-approve
+      #   working-directory: ${{ github.action_path }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-        with:
-          registries: ${{ inputs.aws_account_id }}
-          mask-password: "true"
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v1
+      #   with:
+      #     registries: ${{ inputs.aws_account_id }}
+      #     mask-password: "true"
 
-      - name: Construir, etiquetar y enviar la imagen a Amazon ECR.
-        id: build-publish
-        shell: bash
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ env.ECR_REPO_NAME }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
-        run: |
-          docker build "${{ inputs.docker_build_dir }}" -f "${{ inputs.path_to_dockerfile }}" -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          echo "IMAGE $IMAGE_TAG is pushed to $ECR_REGISTRY/$ECR_REPOSITORY"
-          echo "image_tag=$IMAGE_TAG" 
-          echo "full_image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      # - name: Construir, etiquetar y enviar la imagen a Amazon ECR.
+      #   id: build-publish
+      #   shell: bash
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     ECR_REPOSITORY: ${{ env.ECR_REPO_NAME }}
+      #     IMAGE_TAG: ${{ inputs.image_tag }}
+      #   run: |
+      #     docker build "${{ inputs.docker_build_dir }}" -f "${{ inputs.path_to_dockerfile }}" -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      #     docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      #     echo "IMAGE $IMAGE_TAG is pushed to $ECR_REGISTRY/$ECR_REPOSITORY"
+      #     echo "image_tag=$IMAGE_TAG" 
+      #     echo "full_image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
