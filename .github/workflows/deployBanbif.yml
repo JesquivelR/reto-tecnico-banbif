@@ -58,9 +58,9 @@ jobs:
       - name: Configurar las credenciales de AWS
         shell: bash
         run: |
-          echo "AWS_ACCESS_KEY_ID : ${{ secrets.AWS_ACCESS_KEY_ID }}"
-          echo "AWS_SECRET_ACCESS_KEY : ${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          echo "AWS_REGION : ${{ vars.AWS_REGION }}"
+          echo "key id : ${{secrets.AWS_ACCESS_KEY_ID}}"
+          echo "secret key : ${{secrets.AWS_SECRET_ACCESS_KEY}}"
+          echo "region : ${{vars.AWS_REGION}}"
 
       - name: Configurar Terraform
         uses: hashicorp/setup-terraform@v2
