@@ -1,0 +1,17 @@
+{
+    "rules": [
+        {
+            "rulePriority": 1,
+            "description": "Mantener la última imagen",
+            "selection": {
+                "tagStatus": "tagged",
+                "tagPrefixList": [ "latest" ],
+                "countType": "imageCountMoreThan",
+                "countNumber": 1
+            },
+            "action": {
+                "type": "expire"
+            }
+        }
+    ]
+}
